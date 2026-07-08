@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+  <div class="nav-links">
+    <a href="dashboard.html" data-nav="home">Home</a>
+    <a href="navigate.html" data-nav="navigate">Navigate</a>
+    <a href="profile.html" data-nav="profile" class="active">Profile</a>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+<div style="max-width:480px;margin:0 auto">
+
+  <!-- Hero -->
+  <div class="profile-hero">
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar" id="prof-initial">D</div>
+      <div class="profile-badge">✓</div>
+    </div>
+    <div class="profile-name" id="prof-name">Demo User</div>
+    <div class="profile-sub" id="prof-phone">📱 9876543210</div>
+    <div style="display:flex;gap:16px;margin-top:16px;justify-content:center">
+      <div class="badge-primary">20 rides</div>
+      <div class="badge-success" id="prof-verified-badge">Verified Driver</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:13px;color:#F5C518">★ 4.8</div>
+    </div>
+  </div>
+
+  <!-- Menu -->
+  <div class="profile-menu">
+
+    <a href="editProfile.html" class="profile-menu-item">
+      <div class="menu-icon" style="background:rgba(0,200,150,0.1);color:var(--primary)">✏️</div>
+      <span class="menu-label">Edit Profile</span>
+      <span class="menu-arrow">›</span>
+    </a>
+
+    <a href="driverVerification.html" class="profile-menu-item">
+      <div class="menu-icon" style="background:rgba(210,153,34,0.1);color:var(--warning)">🪪</div>
+      <span class="menu-label">Driver Verification</span>
+      <span class="menu-arrow" id="verif-status">›</span>
+    </a>
+
+    <a href="myRides.html" class="profile-menu-item">
+      <div class="menu-icon" style="background:rgba(88,166,255,0.1);color:#58A6FF">🚲</div>
+      <span class="menu-label">My Rides</span>
+      <span class="menu-arrow">›</span>
+    </a>
+
+    <a href="emergencyContact.html" class="profile-menu-item">
+      <div class="menu-icon" style="background:rgba(248,81,73,0.1);color:var(--danger)">🆘</div>
+      <span class="menu-label">Emergency Contact</span>
+      <span class="menu-arrow">›</span>
+    </a>
+
+    <a href="helpSupport.html" class="profile-menu-item">
+      <div class="menu-icon" style="background:rgba(63,185,80,0.1);color:var(--success)">❓</div>
+      <span class="menu-label">Help & Support</span>
+      <span class="menu-arrow">›</span>
+    </a>
+
+    <hr class="divider">
+
+    <div class="profile-menu-item" onclick="doLogout()" style="color:var(--danger)">
+      <div class="menu-icon" style="background:rgba(248,81,73,0.1);color:var(--danger)">🚪</div>
+      <span class="menu-label" style="color:var(--danger)">Logout</span>
+    </div>
+
+  </div>
+
+</div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item" data-nav="home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+  <a href="navigate.html"  class="bottom-nav-item" data-nav="navigate"><span class="nav-icon">🗺️</span><span class="nav-label">Navigate</span></a>
+  <a href="profile.html"   class="bottom-nav-item active" data-nav="profile"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+</nav>
+
+<script src="js/app.js"></script>
+<script>
+  const u = loadState('user', AppState.currentUser);
+  document.getElementById('prof-initial').textContent = (u.name||'D')[0].toUpperCase();
+  document.getElementById('prof-name').textContent    = u.name || 'Demo User';
+  document.getElementById('prof-phone').textContent   = '📱 ' + (u.phone || '9876543210');
+
+  const verified = loadState('verified', false);
+  const badge = document.getElementById('prof-verified-badge');
+  const verifStatus = document.getElementById('verif-status');
+  if (verified) {
+    badge.style.display = 'flex';
+    verifStatus.innerHTML = '<span class="badge-success" style="padding:3px 8px;font-size:11px">✓</span>';
+  } else {
+    badge.style.display = 'none';
+    verifStatus.innerHTML = '<span class="badge-warning" style="padding:3px 8px;font-size:11px">Pending</span>';
+  }
+
+  function doLogout() {
+    showToast('Logged out. See you soon! 👋', 'info');
+    setTimeout(() => navigateTo('login.html'), 800);
+  }
+</script>
+</body>
+</html>

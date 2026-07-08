@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Profile – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+</nav>
+
+<div class="page-wrapper">
+<div style="max-width:480px;margin:0 auto;padding:16px">
+
+  <div class="page-header" style="padding:0 0 20px">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <h1 class="page-title">Edit Profile</h1>
+  </div>
+
+  <!-- Avatar picker -->
+  <div style="text-align:center;margin-bottom:24px" class="fade-in">
+    <div style="position:relative;display:inline-block">
+      <div class="profile-avatar" id="edit-avatar" style="width:80px;height:80px;font-size:32px;margin:0 auto">D</div>
+      <label for="photo-upload" style="
+        position:absolute;bottom:0;right:0;
+        width:28px;height:28px;border-radius:50%;
+        background:var(--primary);border:2px solid var(--dark);
+        display:flex;align-items:center;justify-content:center;
+        cursor:pointer;font-size:13px;
+      ">📷</label>
+      <input type="file" id="photo-upload" accept="image/*" style="display:none" onchange="previewPhoto(event)">
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px">Tap to change photo</div>
+  </div>
+
+  <div class="fade-in">
+    <div class="form-group">
+      <label class="rl-label">Full Name</label>
+      <input type="text" class="rl-input" id="edit-name" placeholder="Your full name">
+    </div>
+    <div class="form-group">
+      <label class="rl-label">Phone Number</label>
+      <input type="tel" class="rl-input" id="edit-phone" placeholder="10-digit phone">
+    </div>
+    <div class="form-group">
+      <label class="rl-label">Email Address</label>
+      <input type="email" class="rl-input" id="edit-email" placeholder="your@email.com">
+    </div>
+
+    <button class="btn-primary-rl" onclick="saveProfile()" style="margin-bottom:10px">
+      💾 Save Changes
+    </button>
+    <button class="btn-outline-rl" onclick="goBack()">
+      Cancel
+    </button>
+  </div>
+
+</div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  const u = loadState('user', AppState.currentUser);
+  document.getElementById('edit-avatar').textContent = (u.name||'D')[0].toUpperCase();
+  document.getElementById('edit-name').value  = u.name  || '';
+  document.getElementById('edit-phone').value = u.phone || '';
+  document.getElementById('edit-email').value = u.email || '';
+
+  function previewPhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const avatar = document.getElementById('edit-avatar');
+      avatar.style.backgroundImage = `url(${ev.target.result})`;
+      avatar.style.backgroundSize  = 'cover';
+      avatar.textContent = '';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function saveProfile() {
+    const name  = document.getElementById('edit-name').value.trim();
+    const phone = document.getElementById('edit-phone').value.trim();
+    const email = document.getElementById('edit-email').value.trim();
+    if (!name || !phone) { showToast('Name and phone are required', 'error'); return; }
+
+    const user = { name, phone, email, initial: name[0].toUpperCase() };
+    saveState('user', user);
+    showToast('Profile updated! ✓', 'success');
+    setTimeout(() => navigateTo('profile.html'), 800);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ride Match – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+</nav>
+
+<div class="page-wrapper">
+<div style="max-width:480px;margin:0 auto;padding:24px 16px;text-align:center">
+
+  <!-- Match Score Animation -->
+  <div style="margin-bottom:28px" class="fade-in">
+    <div style="font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+      Route Match Score
+    </div>
+    <div id="match-score-val" class="match-score-large">0%</div>
+    <div style="color:var(--text-muted);font-size:14px;margin-top:4px">compatibility</div>
+
+    <!-- Score bar -->
+    <div style="background:var(--dark-border);border-radius:4px;height:6px;margin:16px auto;max-width:200px">
+      <div id="score-bar" style="background:linear-gradient(90deg,var(--primary),#00E5B0);height:100%;border-radius:4px;width:0%;transition:width 1.5s cubic-bezier(0.4,0,0.2,1)"></div>
+    </div>
+  </div>
+
+  <!-- Driver Card -->
+  <div class="rl-card fade-in" style="margin-bottom:16px;text-align:left">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+      <div class="driver-avatar" style="width:52px;height:52px;font-size:20px" id="match-avatar">A</div>
+      <div>
+        <div style="font-weight:700;font-size:17px" id="match-driver">Driver</div>
+        <div style="font-size:13px;color:var(--text-muted)" id="match-rating">★ --</div>
+        <div style="font-size:12px;color:var(--text-muted)" id="match-vehicle"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--dark);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div class="route-line">
+        <div class="route-point">
+          <div class="route-dot pickup"></div>
+          <span id="match-pickup">--</span>
+        </div>
+        <div class="route-connector" style="margin-left:4px"></div>
+        <div class="route-point">
+          <div class="route-dot destination"></div>
+          <span id="match-dest">--</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:14px;color:var(--text-muted)">🕐 <span id="match-time">--</span></div>
+      <div style="font-size:18px;font-weight:700;color:var(--primary)" id="match-price">--</div>
+    </div>
+
+    <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+      Bike: <span class="bike-number" style="font-size:12px;padding:3px 8px" id="match-bike">--</span>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <button class="btn-primary-rl fade-in" id="accept-btn" style="margin-bottom:10px">
+    🙋 Request This Ride
+  </button>
+  <button class="btn-outline-rl fade-in" id="cancel-btn">
+    ✕ Cancel
+  </button>
+
+</div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+  <a href="findRide.html"  class="bottom-nav-item active"><span class="nav-icon">🚲</span><span class="nav-label">Rides</span></a>
+  <a href="navigate.html"  class="bottom-nav-item"><span class="nav-icon">🗺️</span><span class="nav-label">Navigate</span></a>
+  <a href="profile.html"   class="bottom-nav-item"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+</nav>
+
+<script src="js/app.js"></script>
+<script src="js/rides.js"></script>
+<script src="js/matching.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    initMatchPage();
+    // Animate score bar
+    const score = parseInt(sessionStorage.getItem('matchScore') || '88');
+    setTimeout(() => {
+      document.getElementById('score-bar').style.width = score + '%';
+    }, 200);
+  });
+</script>
+</body>
+</html>

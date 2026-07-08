@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Ride – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+  <div class="nav-links">
+    <a href="dashboard.html" data-nav="home">Home</a>
+    <a href="findRide.html"  data-nav="rides" class="active">Rides</a>
+    <a href="navigate.html"  data-nav="navigate">Navigate</a>
+    <a href="profile.html"   data-nav="profile">Profile</a>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+<div style="max-width:600px;margin:0 auto;padding:16px">
+
+  <div class="page-header" style="padding:0 0 20px">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <h1 class="page-title">Find a Ride</h1>
+  </div>
+
+  <div class="rl-card fade-in">
+    <div class="form-group">
+      <label class="rl-label">Pickup Location</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">📍</span>
+        <input type="text" class="rl-input" id="find-pickup" placeholder="Where are you?" list="cbe-pickup">
+        <datalist id="cbe-pickup">
+          <option value="Gandhipuram">
+          <option value="RS Puram">
+          <option value="Peelamedu">
+          <option value="Singanallur">
+          <option value="Saibaba Colony">
+          <option value="Ukkadam">
+          <option value="Hopes College">
+          <option value="Coimbatore Junction">
+          <option value="Coimbatore Airport">
+          <option value="Kovaipudur">
+          <option value="Vadavalli">
+          <option value="Kuniyamuthur">
+          <option value="Podanur">
+          <option value="Ondipudur">
+          <option value="Ramanathapuram">
+          <option value="Ganapathy">
+          <option value="Perur">
+          <option value="Pollachi">
+          <option value="Mettupalayam">
+          <option value="Tiruppur">
+        </datalist>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="rl-label">Destination</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">🏁</span>
+        <input type="text" class="rl-input" id="find-dest" placeholder="Where do you want to go?" list="cbe-dest">
+        <datalist id="cbe-dest">
+          <option value="Gandhipuram">
+          <option value="RS Puram">
+          <option value="Peelamedu">
+          <option value="Singanallur">
+          <option value="Saibaba Colony">
+          <option value="Ukkadam">
+          <option value="Hopes College">
+          <option value="Coimbatore Junction">
+          <option value="Coimbatore Airport">
+          <option value="Kovaipudur">
+          <option value="Vadavalli">
+          <option value="Kuniyamuthur">
+          <option value="Podanur">
+          <option value="Ondipudur">
+          <option value="Ramanathapuram">
+          <option value="Ganapathy">
+          <option value="Perur">
+          <option value="Pollachi">
+          <option value="Mettupalayam">
+          <option value="Tiruppur">
+        </datalist>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="rl-label">Time (Optional)</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">🕐</span>
+        <input type="time" class="rl-input" id="find-time">
+      </div>
+    </div>
+
+    <button class="btn-primary-rl" onclick="searchForRides()">
+      🔍 Search Rides
+    </button>
+  </div>
+
+  <div style="margin-top:20px">
+    <h5 style="font-family:'Syne',sans-serif;margin-bottom:12px;color:var(--text-muted);font-size:13px;text-transform:uppercase;letter-spacing:1px">
+      Popular Routes
+    </h5>
+    <div id="popular-routes"></div>
+  </div>
+
+</div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item" data-nav="home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+  <a href="findRide.html"  class="bottom-nav-item active" data-nav="rides"><span class="nav-icon">🚲</span><span class="nav-label">Rides</span></a>
+  <a href="navigate.html"  class="bottom-nav-item" data-nav="navigate"><span class="nav-icon">🗺️</span><span class="nav-label">Navigate</span></a>
+  <a href="profile.html"   class="bottom-nav-item" data-nav="profile"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+</nav>
+
+<script src="js/app.js"></script>
+<script src="js/rides.js"></script>
+<script>
+  const popular = [
+    ['Gandhipuram',   'Peelamedu'],
+    ['RS Puram',      'Singanallur'],
+    ['Saibaba Colony','Coimbatore Junction'],
+    ['Ukkadam',       'Ganapathy'],
+    ['Hopes College', 'Coimbatore Airport']
+  ];
+  const container = document.getElementById('popular-routes');
+  popular.forEach(([from, to]) => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `
+      background:var(--dark-card);border:1px solid var(--dark-border);
+      color:var(--text-muted);border-radius:10px;padding:10px 14px;
+      font-size:13px;cursor:pointer;margin-bottom:8px;margin-right:8px;
+      font-family:'DM Sans',sans-serif;transition:all 0.2s;
+    `;
+    btn.innerHTML = `📍 ${from} → 🏁 ${to}`;
+    btn.addEventListener('mouseenter', () => { btn.style.borderColor='var(--primary)'; btn.style.color='var(--primary)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.borderColor='var(--dark-border)'; btn.style.color='var(--text-muted)'; });
+    btn.addEventListener('click', () => {
+      document.getElementById('find-pickup').value = from;
+      document.getElementById('find-dest').value   = to;
+    });
+    container.appendChild(btn);
+  });
+
+  function searchForRides() {
+    const pickup = document.getElementById('find-pickup').value.trim();
+    const dest   = document.getElementById('find-dest').value.trim();
+    if (!pickup || !dest) { showToast('Enter pickup and destination', 'error'); return; }
+    sessionStorage.setItem('findPickup', pickup);
+    sessionStorage.setItem('findDest',   dest);
+    navigateTo('rideResults.html');
+  }
+</script>
+</body>
+</html>

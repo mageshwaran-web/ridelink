@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waiting for Driver – RideLink</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>.leaflet-routing-container { display:none !important; }</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+</nav>
+
+<div class="page-wrapper" style="padding-bottom:0">
+
+  <div style="position:relative;height:calc(100vh - 70px)">
+    <div id="pillion-map" style="width:100%;height:100%"></div>
+
+    <!-- Top chip -->
+    <div class="map-overlay">
+      <div class="map-info-chip">
+        🚲 Driver is on the way
+      </div>
+    </div>
+
+    <!-- Bottom HUD -->
+    <div class="ride-hud">
+      <!-- Driver info row — compact -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div class="driver-avatar" style="width:40px;height:40px;font-size:16px;flex-shrink:0" id="wait-avatar">A</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="wait-driver">Driver</div>
+          <div style="font-size:12px;color:var(--text-muted)" id="wait-vehicle">Vehicle</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:10px;color:var(--text-muted)">ARRIVING IN</div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--primary)" id="eta-countdown">8 min</div>
+        </div>
+      </div>
+
+      <!-- Bike number — compact inline -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;
+                  background:var(--dark);border-radius:8px;padding:8px 12px;margin-bottom:10px">
+        <span class="bike-number" style="font-size:13px;padding:2px 8px;letter-spacing:2px" id="wait-bike">TN XX XX XXXX</span>
+        <span style="font-size:11px;color:var(--text-muted)">· Show to driver</span>
+      </div>
+
+      <!-- Actions row: Message | Cancel | SOS -->
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline-rl" style="flex:1;padding:10px 8px;font-size:13px"
+          onclick="showToast('Message sent to driver','success')">
+          💬 Message
+        </button>
+        <button class="btn-danger-rl" style="flex:1;padding:10px 8px;font-size:13px"
+          onclick="cancelRide()">
+          Cancel
+        </button>
+        <button onclick="showModal('sos-modal')" style="
+          background:#F85149;border:none;color:#fff;border-radius:10px;
+          padding:10px 14px;font-weight:700;font-size:13px;cursor:pointer;
+          font-family:'DM Sans',sans-serif;letter-spacing:1px;flex-shrink:0">
+          SOS
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SOS Modal -->
+<div class="modal-overlay" id="sos-modal" onclick="outsideClick(event,'sos-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;margin-bottom:16px;font-size:48px">🆘</div>
+    <div class="modal-title" style="text-align:center;color:var(--danger)">Emergency Alert</div>
+    <p style="text-align:center;color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      This will send an alert with your location to your emergency contact.
+    </p>
+    <button class="btn-danger-rl" style="width:100%;margin-bottom:10px;justify-content:center" onclick="sendSOS()">
+      🆘 Send Alert Now
+    </button>
+    <button class="btn-outline-rl" onclick="hideModal('sos-modal')">Cancel</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="js/app.js"></script>
+<script src="js/map.js"></script>
+<script>
+  const ride = JSON.parse(sessionStorage.getItem('rideAccepted') || sessionStorage.getItem('selectedRide') || 'null');
+
+  if (ride) {
+    document.getElementById('wait-avatar').textContent  = ride.driverInitial;
+    document.getElementById('wait-driver').textContent  = ride.driver;
+    document.getElementById('wait-vehicle').textContent = ride.vehicle;
+    document.getElementById('wait-bike').textContent    = ride.bikeNumber;
+  }
+
+  // Use ride pickup coords (Coimbatore)
+  const CBE = [11.0168, 76.9558];
+  const passengerCoords = ride ? ride.pickupCoords : CBE;
+  const pillionMap = initMap('pillion-map', passengerCoords, 14);
+
+  // Passenger marker
+  L.marker(passengerCoords, { icon: icons.pillion })
+    .addTo(pillionMap).bindPopup('📍 Your pickup location').openPopup();
+
+  // Driver starts from a nearby offset
+  const driverStart = [passengerCoords[0] + 0.018, passengerCoords[1] - 0.015];
+  const driverMarker = L.marker(driverStart, { icon: icons.driver })
+    .addTo(pillionMap).bindPopup('🚲 ' + (ride ? ride.driver : 'Driver'));
+
+  // ETA countdown display
+  const etaEl = document.getElementById('eta-countdown');
+  let mins = 8;
+  let moveTimer = null;
+
+  function arrived() {
+    if (moveTimer) clearInterval(moveTimer);
+    if (countdownTimer) clearInterval(countdownTimer);
+    driverMarker.setLatLng(passengerCoords);
+    etaEl.textContent = 'Arrived!';
+    showToast('Driver has arrived! 🎉', 'success');
+    setTimeout(() => navigateTo('rideInProgress.html'), 2000);
+  }
+
+  const countdownTimer = setInterval(() => {
+    mins--;
+    if (mins <= 0) {
+      clearInterval(countdownTimer);
+      arrived();
+    } else {
+      etaEl.textContent = mins + ' min';
+    }
+  }, 3000);
+
+  // Fetch real road route from OSRM and animate along it
+  const startLL  = driverStart.join(',');
+  const endLL    = passengerCoords[1] + ',' + passengerCoords[0]; // lon,lat for OSRM
+  const startOSRM = driverStart[1]    + ',' + driverStart[0];
+
+  fetch(`https://router.project-osrm.org/route/v1/bike/${startOSRM};${endLL}?overview=full&geometries=geojson`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.routes || !data.routes[0]) throw new Error('No route');
+
+      const coords = data.routes[0].geometry.coordinates;
+      // OSRM returns [lng, lat] — convert to [lat, lng] for Leaflet
+      const latLngs = coords.map(c => [c[1], c[0]]);
+
+      // Green = remaining ahead (shrinks), grey = travelled behind
+      const remainLine    = L.polyline(latLngs, { color: '#00C896', weight: 5, opacity: 0.9 }).addTo(pillionMap);
+      const travelledLine = L.polyline([latLngs[0]], { color: '#444c56', weight: 3, opacity: 0.4 }).addTo(pillionMap);
+      pillionMap.fitBounds(latLngs, { padding: [40, 40] });
+
+      const total    = latLngs.length;
+      const interval = Math.max(30, Math.floor(24000 / total));
+      let i = 0;
+
+      moveTimer = setInterval(() => {
+        if (i >= total) { clearInterval(moveTimer); return; }
+        driverMarker.setLatLng(latLngs[i]);
+        pillionMap.panTo(latLngs[i], { animate: true, duration: 0.2 });
+        remainLine.setLatLngs(latLngs.slice(i));         // green shrinks ahead
+        travelledLine.setLatLngs(latLngs.slice(0, i+1)); // grey grows behind
+        i++;
+      }, interval);
+    })
+    .catch(() => {
+      pillionMap.fitBounds([driverStart, passengerCoords], { padding: [40, 40] });
+      const remainLine    = L.polyline([driverStart, passengerCoords], { color: '#00C896', weight: 4, opacity: 0.9 }).addTo(pillionMap);
+      const travelledLine = L.polyline([driverStart], { color: '#444c56', weight: 3, opacity: 0.4 }).addTo(pillionMap);
+      const STEPS = 240;
+      let s = 0;
+      moveTimer = setInterval(() => {
+        if (s >= STEPS) { clearInterval(moveTimer); return; }
+        s++;
+        const t = s / STEPS;
+        const cur = [
+          driverStart[0] + (passengerCoords[0] - driverStart[0]) * t,
+          driverStart[1] + (passengerCoords[1] - driverStart[1]) * t
+        ];
+        driverMarker.setLatLng(cur);
+        remainLine.setLatLngs([cur, passengerCoords]);
+        travelledLine.setLatLngs([driverStart, cur]);
+      }, 100);
+    });
+
+  function cancelRide() {
+    clearInterval(countdownTimer);
+    showToast('Ride cancelled', 'warning');
+    setTimeout(() => navigateTo('dashboard.html'), 800);
+  }
+
+  function sendSOS() {
+    hideModal('sos-modal');
+    showToast('🆘 Emergency alert sent to contact!', 'error');
+  }
+
+  function outsideClick(e, id) {
+    if (e.target.id === id) hideModal(id);
+  }
+</script>
+</body>
+</html>

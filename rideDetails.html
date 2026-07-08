@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ride Details – RideLink</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+  <div class="nav-links">
+    <a href="dashboard.html">Home</a>
+    <a href="findRide.html" class="active">Rides</a>
+    <a href="navigate.html">Navigate</a>
+    <a href="profile.html">Profile</a>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <h1 class="page-title">Ride Details</h1>
+  </div>
+
+  <!-- Map -->
+  <div class="map-container" style="height:220px;margin:0 16px;border-radius:16px">
+    <div id="detail-map" style="width:100%;height:100%"></div>
+  </div>
+
+  <div style="padding:16px">
+
+    <!-- Driver Card -->
+    <div class="rl-card fade-in" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="driver-avatar" style="width:56px;height:56px;font-size:22px" id="det-avatar">A</div>
+        <div style="flex:1">
+          <h5 id="det-driver" style="margin:0">Driver Name</h5>
+          <div id="det-stars" style="font-size:16px;margin:4px 0"></div>
+          <div style="font-size:12px;color:var(--text-muted)" id="det-rides">-- rides</div>
+        </div>
+        <span class="badge-primary">✓ Verified</span>
+      </div>
+    </div>
+
+    <!-- Route Card -->
+    <div class="rl-card fade-in" style="margin-bottom:12px">
+      <h6 style="margin-bottom:12px;color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:1px">Route</h6>
+      <div class="route-line">
+        <div class="route-point">
+          <div class="route-dot pickup"></div>
+          <span id="det-pickup">Pickup</span>
+        </div>
+        <div class="route-connector" style="margin-left:4px"></div>
+        <div class="route-point">
+          <div class="route-dot destination"></div>
+          <span id="det-dest">Destination</span>
+        </div>
+      </div>
+      <div class="ride-meta" style="margin-top:12px">
+        <div class="ride-meta-item">🕐 <span id="det-time">--</span></div>
+        
+        <div class="ride-meta-item" style="color:var(--primary);font-weight:700;font-size:16px">
+          ₹<span id="det-price">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicle Card -->
+    <div class="rl-card fade-in" style="margin-bottom:20px">
+      <h6 style="margin-bottom:10px;color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:1px">Vehicle</h6>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div id="det-vehicle" style="font-weight:600"></div>
+          <div class="bike-number" style="font-size:16px;padding:6px 12px;margin-top:8px" id="det-bike">TN XX XX XXXX</div>
+        </div>
+        <span style="font-size:48px">🏍️</span>
+      </div>
+    </div>
+
+    <!-- Match score -->
+    <div style="text-align:center;margin-bottom:20px" id="match-display">
+      <div class="match-score-large" id="det-match">88%</div>
+      <div style="color:var(--text-muted);font-size:14px;margin-top:4px">route match</div>
+    </div>
+
+    <button class="btn-primary-rl" onclick="bookRide()" style="margin-bottom:10px">
+      🙋 Request This Ride
+    </button>
+    <button class="btn-outline-rl" onclick="goBack()">
+      Cancel
+    </button>
+
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+  <a href="findRide.html"  class="bottom-nav-item active"><span class="nav-icon">🚲</span><span class="nav-label">Rides</span></a>
+  <a href="navigate.html"  class="bottom-nav-item"><span class="nav-icon">🗺️</span><span class="nav-label">Navigate</span></a>
+  <a href="profile.html"   class="bottom-nav-item"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="js/app.js"></script>
+<script src="js/map.js"></script>
+<script>
+  const ride  = JSON.parse(sessionStorage.getItem('selectedRide') || 'null');
+  const score = sessionStorage.getItem('matchScore') || '88';
+
+  if (!ride) { navigateTo('findRide.html'); }
+
+  // Populate fields
+  document.getElementById('det-avatar').textContent  = ride.driverInitial;
+  document.getElementById('det-driver').textContent  = ride.driver;
+  document.getElementById('det-stars').innerHTML     = starsHTML(ride.rating) + ` <span style="color:var(--text-muted);font-size:12px">${ride.rating}</span>`;
+  document.getElementById('det-rides').textContent   = ride.rides + ' rides completed';
+  document.getElementById('det-pickup').textContent  = ride.pickup;
+  document.getElementById('det-dest').textContent    = ride.destination;
+  document.getElementById('det-time').textContent    = ride.time;
+  document.getElementById('det-seats').textContent   = ride.seats;
+  document.getElementById('det-price').textContent   = ride.price;
+  document.getElementById('det-vehicle').textContent = ride.vehicle;
+  document.getElementById('det-bike').textContent    = ride.bikeNumber;
+  document.getElementById('det-match').textContent   = score + '%';
+
+  // Init map
+  const detMap = initMap('detail-map', ride.pickupCoords, 12);
+  L.marker(ride.pickupCoords, { icon: icons.pickup }).addTo(detMap).bindPopup('Pickup: ' + ride.pickup);
+  L.marker(ride.destCoords,   { icon: icons.dest   }).addTo(detMap).bindPopup('Destination: ' + ride.destination);
+  drawRoute(detMap, ride.pickupCoords, ride.destCoords, () => {});
+
+  function bookRide() {
+    sessionStorage.setItem('rideAccepted', JSON.stringify(ride));
+    showToast('Ride requested! Waiting for driver confirmation 🚲', 'success');
+    setTimeout(() => navigateTo('pillionWaiting.html'), 900);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ride Results – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+  <div class="nav-links">
+    <a href="dashboard.html">Home</a>
+    <a href="findRide.html" class="active">Rides</a>
+    <a href="navigate.html">Navigate</a>
+    <a href="profile.html">Profile</a>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+<div style="max-width:640px;margin:0 auto;padding:16px">
+
+  <div class="page-header" style="padding:0 0 16px">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div>
+      <h1 class="page-title">Available Rides</h1>
+      <div id="route-summary" style="font-size:13px;color:var(--text-muted)"></div>
+    </div>
+  </div>
+
+  <!-- Filter chips -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="filter-bar">
+    <button class="filter-chip active" data-filter="all" onclick="filterRides('all',this)">All</button>
+    <button class="filter-chip" data-filter="cheap" onclick="filterRides('cheap',this)">Cheapest</button>
+    <button class="filter-chip" data-filter="fast" onclick="filterRides('fast',this)">Soonest</button>
+    <button class="filter-chip" data-filter="match" onclick="filterRides('match',this)">Best Match</button>
+  </div>
+
+  <div id="results-count" style="font-size:13px;color:var(--text-muted);margin-bottom:12px"></div>
+
+  <div id="results-list">
+    <div style="text-align:center;padding:40px;color:var(--text-muted)">
+      <div style="font-size:32px;margin-bottom:8px">🔍</div>
+      Searching...
+    </div>
+  </div>
+
+</div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+  <a href="findRide.html"  class="bottom-nav-item active"><span class="nav-icon">🚲</span><span class="nav-label">Rides</span></a>
+  <a href="navigate.html"  class="bottom-nav-item"><span class="nav-icon">🗺️</span><span class="nav-label">Navigate</span></a>
+  <a href="profile.html"   class="bottom-nav-item"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+</nav>
+
+<style>
+  .filter-chip {
+    background: var(--dark-card);
+    border: 1px solid var(--dark-border);
+    color: var(--text-muted); border-radius: 20px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer;
+    font-family: 'DM Sans',sans-serif; transition: all 0.2s;
+  }
+  .filter-chip.active {
+    background: var(--primary-glow);
+    border-color: var(--primary); color: var(--primary);
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/app.js"></script>
+<script src="js/rides.js"></script>
+<script>
+  const pickup = sessionStorage.getItem('findPickup') || '';
+  const dest   = sessionStorage.getItem('findDest')   || '';
+
+  document.getElementById('route-summary').textContent = pickup && dest
+    ? `${pickup} → ${dest}` : 'All available rides';
+
+  let allResults = [];
+
+  // Simulate search delay, now fetching asynchronously
+  setTimeout(async () => {
+    allResults = await searchRides(pickup, dest);
+    renderResults(allResults);
+  }, 100);
+
+  function renderResults(rides) {
+    const list = document.getElementById('results-list');
+    list.innerHTML = '';
+    document.getElementById('results-count').textContent = `${rides.length} ride${rides.length!==1?'s':''} found`;
+
+    if (!rides.length) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">😔</div>
+          <h5>No rides found</h5>
+          <p>Try different locations or check back later</p>
+        </div>`;
+      return;
+    }
+
+    rides.forEach(r => {
+      const card = renderRideCard(r, r.score, null);
+      list.appendChild(card);
+    });
+  }
+
+  function filterRides(type, btn) {
+    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    let sorted = [...allResults];
+    if (type === 'cheap') sorted.sort((a,b) => a.price - b.price);
+    else if (type === 'fast') sorted.sort((a,b) => a.time.localeCompare(b.time));
+    else if (type === 'match') sorted.sort((a,b) => (b.score||0) - (a.score||0));
+    renderResults(sorted);
+  }
+</script>
+</body>
+</html>

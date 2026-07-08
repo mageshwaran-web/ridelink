@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navigate – RideLink</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .leaflet-routing-container { display: none !important; }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+  <div class="nav-links">
+    <a href="dashboard.html" data-nav="home">Home</a>
+    <a href="navigate.html"  data-nav="navigate" class="active">Navigate</a>
+    <a href="profile.html"   data-nav="profile">Profile</a>
+  </div>
+</nav>
+
+<div class="page-wrapper" style="padding-bottom:0">
+<div class="desktop-layout">
+
+  <!-- Sidebar -->
+  <div class="desktop-sidebar">
+    <h2 style="font-family:'Syne',sans-serif;margin-bottom:4px">Navigate</h2>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      Enter locations or click on the map to plan your route.
+    </p>
+
+    <div class="form-group">
+      <label class="rl-label">Start Location</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">📍</span>
+        <input type="text" class="rl-input" id="nav-start-input"
+          placeholder="e.g. Chennai, Taj Mahal, New York…">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="rl-label">Destination</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">🏁</span>
+        <input type="text" class="rl-input" id="nav-dest-input"
+          placeholder="e.g. Coimbatore Airport, Mumbai…">
+      </div>
+    </div>
+
+    <button class="btn-primary-rl" onclick="searchRoute()" style="margin-bottom:10px">
+      🗺️ Get Route
+    </button>
+
+    <div style="text-align:center;color:var(--text-faint);font-size:12px;margin:10px 0">
+      — or click directly on the map —
+    </div>
+
+    <div class="rl-card" style="margin-bottom:16px;padding:12px 14px">
+      <p style="font-size:13px;color:var(--text-muted);margin:0" id="click-hint-text">
+        <span style="color:var(--primary)">●</span> Click map to set <b>start point</b>
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="rl-card" style="text-align:center;padding:16px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">DISTANCE</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--primary)" id="nav-distance">--</div>
+      </div>
+      <div class="rl-card" style="text-align:center;padding:16px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">EST. TIME</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--primary)" id="nav-time">--</div>
+      </div>
+    </div>
+
+    <button class="btn-outline-rl" onclick="resetRoute()" style="margin-bottom:12px">
+      🔄 Reset Route
+    </button>
+    <button class="btn-primary-rl" onclick="navigateTo('findRide.html')">
+      🚲 Find a Ride Instead
+    </button>
+  </div>
+
+  <!-- Map -->
+  <div class="desktop-map" style="position:relative">
+    <div id="nav-map" style="width:100%;height:100%"></div>
+
+    <!-- Mobile-only chips: hidden until route found, hidden on desktop -->
+    <div id="nav-mobile-chips" style="display:none;position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:500;display:none">
+      <div style="display:flex;gap:8px">
+        <div id="nav-dist-chip" style="
+          background:rgba(0,200,150,0.18);border:1px solid rgba(0,200,150,0.4);
+          color:#00C896;border-radius:20px;padding:6px 14px;font-size:13px;
+          font-weight:600;backdrop-filter:blur(8px);white-space:nowrap">
+          📏 <span id="nav-dist-chip-val">--</span>
+        </div>
+        <div id="nav-time-chip" style="
+          background:rgba(0,200,150,0.18);border:1px solid rgba(0,200,150,0.4);
+          color:#00C896;border-radius:20px;padding:6px 14px;font-size:13px;
+          font-weight:600;backdrop-filter:blur(8px);white-space:nowrap">
+          ⏱ <span id="nav-time-chip-val">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile-only floating buttons: hidden on desktop via JS -->
+    <div id="nav-mobile-btns" style="display:none;position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:500;gap:10px">
+      <button onclick="resetRoute()" style="
+        background:rgba(22,27,34,0.95);border:1px solid var(--dark-border);
+        color:var(--text-main);border-radius:12px;padding:10px 16px;
+        font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;
+        backdrop-filter:blur(8px);">🔄 Reset</button>
+      <button onclick="navigateTo('findRide.html')" style="
+        background:linear-gradient(135deg,#00C896,#009E78);
+        border:none;color:white;border-radius:12px;padding:10px 16px;
+        font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;">🚲 Find Ride</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item" data-nav="home"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+  <a href="navigate.html"  class="bottom-nav-item active" data-nav="navigate"><span class="nav-icon">🗺️</span><span class="nav-label">Navigate</span></a>
+  <a href="profile.html"   class="bottom-nav-item" data-nav="profile"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="js/app.js"></script>
+<script src="js/map.js"></script>
+<script>
+  // ---- Geocoding via Nominatim (OpenStreetMap) — finds ANY place worldwide ----
+  const CBE_CENTRE = [11.0168, 76.9558];
+
+  async function geocode(name) {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name)}&format=json&limit=1`;
+    try {
+      const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      }
+    } catch (e) { /* network error */ }
+    return null;
+  }
+
+  // ---- Map init ----
+  const navMap = initMap('nav-map', CBE_CENTRE, 13);
+  let startCoords = null, endCoords = null;
+  let startMarker = null, endMarker = null;
+  let routeControl = null;
+  let clickStep = 0;
+
+  navMap.setView(CBE_CENTRE, 13);
+
+  // Map click
+  navMap.on('click', e => {
+    const latlng = [e.latlng.lat, e.latlng.lng];
+    if (clickStep === 0) {
+      placeStart(latlng, 'Clicked Start');
+      clickStep = 1;
+    } else {
+      placeEnd(latlng, 'Clicked Destination');
+      clickStep = 0;
+      plotRoute();
+    }
+  });
+
+  function placeStart(coords, label) {
+    if (startMarker) navMap.removeLayer(startMarker);
+    startCoords = coords;
+    startMarker = L.marker(coords, { icon: icons.pickup })
+      .addTo(navMap).bindPopup('📍 ' + label).openPopup();
+    setHint('start-set');
+  }
+
+  function placeEnd(coords, label) {
+    if (endMarker) navMap.removeLayer(endMarker);
+    endCoords = coords;
+    endMarker = L.marker(coords, { icon: icons.dest })
+      .addTo(navMap).bindPopup('🏁 ' + label).openPopup();
+  }
+
+  function setHint(state) {
+    const el = document.getElementById('click-hint-text');
+    if (!el) return;
+    const map = {
+      idle:       '<span style="color:var(--primary)">●</span> Click map to set <b>start point</b>',
+      'start-set':'<span style="color:var(--accent)">●</span> Now click map to set <b>destination</b>',
+      searching:  '<span style="color:var(--warning)">⏳</span> Calculating route…',
+      done:       '<span style="color:var(--success)">✓</span> Route ready — distance &amp; time shown above'
+    };
+    el.innerHTML = map[state] || map.idle;
+  }
+
+  function plotRoute() {
+    if (!startCoords || !endCoords) return;
+    setHint('searching');
+
+    if (routeControl) {
+      try { navMap.removeControl(routeControl); } catch(e) {}
+      routeControl = null;
+    }
+
+    routeControl = L.Routing.control({
+      waypoints: [L.latLng(startCoords), L.latLng(endCoords)],
+      routeWhileDragging: false,
+      showAlternatives: false,
+      show: false,
+      fitSelectedRoutes: true,
+      lineOptions: { styles: [{ color: '#00C896', weight: 5, opacity: 0.85 }] },
+      createMarker: () => null
+    }).addTo(navMap);
+
+    routeControl.on('routesfound', e => {
+      const s    = e.routes[0].summary;
+      const dist = (s.totalDistance / 1000).toFixed(1) + ' km';
+      const m    = Math.round(s.totalTime / 60);
+      const time = m >= 60 ? Math.floor(m/60) + 'h ' + (m%60) + 'm' : m + ' min';
+
+      document.getElementById('nav-distance').textContent = dist;
+      document.getElementById('nav-time').textContent     = time;
+
+      // Update mobile chip values and show only on small screens
+      const dv = document.getElementById('nav-dist-chip-val');
+      const tv = document.getElementById('nav-time-chip-val');
+      if (dv) dv.textContent = dist;
+      if (tv) tv.textContent = time;
+      if (window.innerWidth < 1024) {
+        const chips = document.getElementById('nav-mobile-chips');
+        const btns  = document.getElementById('nav-mobile-btns');
+        if (chips) chips.style.display = 'block';
+        if (btns)  btns.style.display  = 'flex';
+      }
+
+      setHint('done');
+      showToast('Route: ' + dist + ' · ' + time, 'success');
+    });
+
+    routeControl.on('routingerror', () => {
+      showToast('Route not found. Try different points.', 'error');
+      setHint('idle');
+    });
+  }
+
+  async function searchRoute() {
+    const s = document.getElementById('nav-start-input').value.trim();
+    const d = document.getElementById('nav-dest-input').value.trim();
+    if (!s || !d) { showToast('Enter start and destination', 'error'); return; }
+
+    setHint('searching');
+    showToast('🔍 Looking up locations…', 'info');
+
+    const [sc, dc] = await Promise.all([geocode(s), geocode(d)]);
+
+    if (!sc) { showToast('Location not found: ' + s, 'error'); setHint('idle'); return; }
+    if (!dc) { showToast('Location not found: ' + d, 'error'); setHint('idle'); return; }
+
+    placeStart(sc, s);
+    placeEnd(dc, d);
+    plotRoute();
+  }
+
+  function resetRoute() {
+    if (startMarker) { navMap.removeLayer(startMarker); startMarker = null; }
+    if (endMarker)   { navMap.removeLayer(endMarker);   endMarker   = null; }
+    if (routeControl) {
+      try { navMap.removeControl(routeControl); } catch(e) {}
+      routeControl = null;
+    }
+    startCoords = endCoords = null;
+    clickStep = 0;
+
+    document.getElementById('nav-distance').textContent = '--';
+    document.getElementById('nav-time').textContent     = '--';
+    document.getElementById('nav-start-input').value   = '';
+    document.getElementById('nav-dest-input').value    = '';
+
+    // Hide mobile chips and buttons
+    const chips = document.getElementById('nav-mobile-chips');
+    const btns  = document.getElementById('nav-mobile-btns');
+    if (chips) chips.style.display = 'none';
+    if (btns)  btns.style.display  = 'none';
+
+    navMap.setView(CBE_CENTRE, 13);
+    setHint('idle');
+    showToast('Route cleared', 'info');
+  }
+</script>
+</body>
+</html>

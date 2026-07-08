@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Contact – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+</nav>
+
+<div class="page-wrapper">
+<div style="max-width:480px;margin:0 auto;padding:16px">
+
+  <div class="page-header" style="padding:0 0 20px">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <h1 class="page-title">Emergency Contact</h1>
+  </div>
+
+  <div class="rl-card fade-in" style="margin-bottom:16px;background:rgba(248,81,73,0.08);border-color:rgba(248,81,73,0.2)">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">🆘</span>
+      <p style="font-size:13px;color:var(--text-muted);margin:0">
+        This contact will be notified immediately when you press the SOS button during a ride.
+      </p>
+    </div>
+  </div>
+
+  <div class="fade-in">
+    <div class="form-group">
+      <label class="rl-label">Contact Name</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">👤</span>
+        <input type="text" class="rl-input" id="ec-name" placeholder="Full name">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="rl-label">Relationship</label>
+      <select class="rl-select" id="ec-relation">
+        <option value="">Select relationship</option>
+        <option>Parent</option>
+        <option>Sibling</option>
+        <option>Spouse / Partner</option>
+        <option>Friend</option>
+        <option>Colleague</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="rl-label">Phone Number</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">📱</span>
+        <input type="tel" class="rl-input" id="ec-phone" placeholder="10-digit number">
+      </div>
+    </div>
+
+    <button class="btn-primary-rl" onclick="saveEmergencyContact()" style="margin-bottom:10px">
+      💾 Save Contact
+    </button>
+    <button class="btn-outline-rl" onclick="goBack()">Cancel</button>
+  </div>
+
+</div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  const ec = loadState('emergency', null);
+  if (ec) {
+    document.getElementById('ec-name').value    = ec.name     || '';
+    document.getElementById('ec-phone').value   = ec.phone    || '';
+    document.getElementById('ec-relation').value = ec.relation || '';
+  }
+
+  function saveEmergencyContact() {
+    const name     = document.getElementById('ec-name').value.trim();
+    const phone    = document.getElementById('ec-phone').value.trim();
+    const relation = document.getElementById('ec-relation').value;
+
+    if (!name || !phone || !relation) {
+      showToast('Please fill all fields', 'error'); return;
+    }
+    if (phone.length < 10) {
+      showToast('Enter a valid phone number', 'error'); return;
+    }
+
+    saveState('emergency', { name, phone, relation });
+    showToast('Emergency contact saved ✓', 'success');
+    setTimeout(() => navigateTo('profile.html'), 800);
+  }
+</script>
+</body>
+</html>

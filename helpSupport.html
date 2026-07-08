@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help & Support – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+</nav>
+
+<div class="page-wrapper">
+<div style="max-width:580px;margin:0 auto;padding:16px">
+
+  <div class="page-header" style="padding:0 0 20px">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <h1 class="page-title">Help & Support</h1>
+  </div>
+
+  <div style="text-align:center;padding:24px 0 20px" class="fade-in">
+    <div style="font-size:48px;margin-bottom:8px">💬</div>
+    <h3 style="margin-bottom:4px">How can we help?</h3>
+    <p style="color:var(--text-muted);font-size:14px">Find answers to common questions below</p>
+  </div>
+
+  <h5 style="font-family:'Syne',sans-serif;margin-bottom:12px;color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:1px">
+    Frequently Asked Questions
+  </h5>
+
+  <div class="faq-item fade-in">
+    <button class="faq-question" onclick="toggleFAQ(this)">
+      <span>🚲 How do I offer a ride?</span>
+      <span>›</span>
+    </button>
+    <div class="faq-answer">
+      First, complete Driver Verification in your Profile. Then go to the Dashboard and tap "Offer Ride". Fill in your start location, destination, departure time, available seats, and your price per passenger. You can also click on the map to set exact pickup and drop points. Once posted, passengers can find and request your ride.
+    </div>
+  </div>
+
+  <div class="faq-item fade-in">
+    <button class="faq-question" onclick="toggleFAQ(this)">
+      <span>🔍 How do I find/request a ride?</span>
+      <span>›</span>
+    </button>
+    <div class="faq-answer">
+      Tap "Find Ride" from the Dashboard or the Rides tab. Enter your pickup location and destination, then hit Search. You'll see a list of available rides sorted by match score. Tap any ride to see details and request it. Once the driver confirms, you'll see live tracking.
+    </div>
+  </div>
+
+  <div class="faq-item fade-in">
+    <button class="faq-question" onclick="toggleFAQ(this)">
+      <span>📱 How do I contact my driver?</span>
+      <span>›</span>
+    </button>
+    <div class="faq-answer">
+      Once your ride is confirmed, you'll see a "Message" button on the waiting screen. In this demo version, messages are simulated. In the full version, you'll be able to call or message your driver directly through the app.
+    </div>
+  </div>
+
+  <div class="faq-item fade-in">
+    <button class="faq-question" onclick="toggleFAQ(this)">
+      <span>🆘 What is the SOS feature?</span>
+      <span>›</span>
+    </button>
+    <div class="faq-answer">
+      The SOS button appears during active rides (waiting, in-progress). Pressing it sends an emergency alert with your current GPS location to your registered Emergency Contact. Set up your emergency contact in Profile → Emergency Contact before riding.
+    </div>
+  </div>
+
+  <div class="faq-item fade-in">
+    <button class="faq-question" onclick="toggleFAQ(this)">
+      <span>⭐ How does the rating system work?</span>
+      <span>›</span>
+    </button>
+    <div class="faq-answer">
+      After each completed ride, both the driver and passenger can rate each other on a 5-star scale with an optional comment. Ratings contribute to your overall score visible on your profile and ride cards. Higher-rated users are shown first in search results.
+    </div>
+  </div>
+
+  <div class="faq-item fade-in">
+    <button class="faq-question" onclick="toggleFAQ(this)">
+      <span>🗺️ Can I use the map without booking?</span>
+      <span>›</span>
+    </button>
+    <div class="faq-answer">
+      Yes! Tap the Navigate tab (map icon) in the bottom bar. You can click on the map to set a start and end point, and the app will draw a route and calculate distance and estimated travel time using OpenStreetMap.
+    </div>
+  </div>
+
+  <hr class="divider" style="margin:24px 0">
+
+  <!-- Contact section -->
+  <div class="rl-card fade-in" style="text-align:center">
+    <div style="font-size:32px;margin-bottom:12px">📧</div>
+    <h5 style="margin-bottom:6px">Still need help?</h5>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px">
+      Our support team is here for you
+    </p>
+    <a href="mailto:support@ridelink.demo" style="
+      display:inline-flex;align-items:center;gap:8px;
+      background:var(--primary-glow);border:1px solid var(--primary);
+      color:var(--primary);padding:10px 20px;border-radius:10px;
+      font-size:14px;font-weight:600;
+    ">
+      📧 support@ridelink.demo
+    </a>
+    <div style="font-size:12px;color:var(--text-faint);margin-top:12px">
+      Response time: within 24 hours
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  function toggleFAQ(btn) {
+    const answer = btn.nextElementSibling;
+    const isOpen = answer.classList.contains('open');
+    // Close all
+    document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
+    document.querySelectorAll('.faq-question span:last-child').forEach(s => s.textContent = '›');
+    // Open clicked if not already open
+    if (!isOpen) {
+      answer.classList.add('open');
+      btn.querySelector('span:last-child').textContent = '∨';
+    }
+  }
+</script>
+</body>
+</html>

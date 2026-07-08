@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver – Pickup Navigation – RideLink</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+</nav>
+
+<div class="page-wrapper" style="padding-bottom:0">
+<div style="position:relative;height:calc(100vh - 70px)">
+
+  <div id="driver-map" style="width:100%;height:100%"></div>
+
+  <div class="map-overlay">
+    <div class="map-info-chip">🧭 Navigate to passenger</div>
+  </div>
+
+  <div class="ride-hud">
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Heading to pickup</div>
+      <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--primary)" id="pickup-name">Passenger Location</div>
+    </div>
+
+    <div class="hud-row">
+      <div class="hud-stat">
+        <div class="hud-value" id="pickup-dist">--</div>
+        <div class="hud-label">Distance</div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-value" id="pickup-eta">--</div>
+        <div class="hud-label">ETA</div>
+      </div>
+    </div>
+
+    <button class="btn-primary-rl" id="arrived-btn" onclick="arrivedAtPickup()" style="margin-bottom:10px">
+      ✅ I've Arrived at Pickup
+    </button>
+    <button onclick="showModal('sos-modal')" style="
+      width:100%;padding:12px;
+      background:rgba(248,81,73,0.12);
+      border:1px solid rgba(248,81,73,0.4);
+      color:#F85149;border-radius:12px;
+      font-family:'DM Sans',sans-serif;font-weight:700;
+      font-size:14px;cursor:pointer;letter-spacing:1px;">
+      🆘 SOS Emergency
+    </button>
+  </div>
+</div>
+</div>
+
+<!-- SOS Modal -->
+<div class="modal-overlay" id="sos-modal" onclick="if(event.target.id==='sos-modal')hideModal('sos-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;font-size:48px;margin-bottom:12px">🆘</div>
+    <div class="modal-title" style="text-align:center;color:var(--danger)">Emergency Alert</div>
+    <p style="text-align:center;color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      Send emergency alert with your current location.
+    </p>
+    <button class="btn-danger-rl" style="width:100%;justify-content:center;margin-bottom:10px" onclick="sendSOS()">
+      Send Alert
+    </button>
+    <button class="btn-outline-rl" onclick="hideModal('sos-modal')">Cancel</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="js/app.js"></script>
+<script src="js/map.js"></script>
+<script>
+  const ride = JSON.parse(sessionStorage.getItem('selectedRide') || 'null');
+  if (ride) document.getElementById('pickup-name').textContent = ride.pickup;
+
+  // Always use Coimbatore — never use browser GPS (avoids showing Chennai/wrong city)
+  const CBE = [11.0168, 76.9558];
+
+  // Use pickup coords from the posted ride if available, else default CBE area
+  const driverStart = (ride && ride.pickupCoords) ? ride.pickupCoords : CBE;
+  const driverMap = initMap('driver-map', driverStart, 14);
+
+  L.marker(driverStart, { icon: icons.driver }).addTo(driverMap)
+    .bindPopup('🚲 You (Driver)').openPopup();
+
+  // Passenger simulated at a nearby Coimbatore offset
+  const passengerCoords = [driverStart[0] + 0.012, driverStart[1] + 0.008];
+  L.marker(passengerCoords, { icon: icons.pillion }).addTo(driverMap)
+    .bindPopup('🧍 Passenger Pickup');
+
+  drawRoute(driverMap, driverStart, passengerCoords, info => {
+    document.getElementById('pickup-dist').textContent = info.distance;
+    document.getElementById('pickup-eta').textContent  = info.time;
+  });
+
+  function arrivedAtPickup() {
+    showToast('Great! Starting ride now 🚲', 'success');
+    setTimeout(() => navigateTo('rideInProgress.html'), 800);
+  }
+  function sendSOS() {
+    hideModal('sos-modal');
+    showToast('🆘 Emergency alert sent!', 'error');
+  }
+</script>
+</body>
+</html>

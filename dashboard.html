@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – RideLink</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand">
+    <div class="nav-brand-icon">R</div>
+    RideLink
+  </div>
+  <div class="nav-links">
+    <a href="dashboard.html" data-nav="home" class="active">Home</a>
+    <a href="navigate.html"  data-nav="navigate">Navigate</a>
+    <a href="profile.html"   data-nav="profile">Profile</a>
+  </div>
+  <div class="nav-profile" onclick="navigateTo('profile.html')" id="top-nav-initial">D</div>
+</nav>
+
+<div class="page-wrapper">
+  <div class="desktop-layout">
+
+    <!-- Sidebar -->
+    <div class="desktop-sidebar">
+
+      <!-- Greeting -->
+      <div class="fade-in" style="margin-bottom:20px">
+        <div style="font-size:14px;color:var(--text-muted)" id="dash-greeting">Good morning 👋</div>
+        <h2 style="font-size:26px;margin-top:4px" id="dash-username">Demo User</h2>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row fade-in" style="padding:0;margin-bottom:20px">
+        <div class="stat-chip">
+          <div class="stat-value">12</div>
+          <div class="stat-label">Rides Taken</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-value">8</div>
+          <div class="stat-label">Rides Offered</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-value">4.8</div>
+          <div class="stat-label">Your Rating</div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="fab-container fade-in" style="position:relative;bottom:auto;left:auto;transform:none;max-width:none;width:100%">
+        <button class="fab-btn fab-offer" onclick="handleOfferRide()">
+          🚲 Offer Ride
+        </button>
+        <button class="fab-btn fab-find" onclick="navigateTo('findRide.html')">
+          🔍 Find Ride
+        </button>
+      </div>
+
+      <hr class="divider" style="margin:20px 0">
+
+      <button class="btn-outline-rl" onclick="navigateTo('navigate.html')">
+        🗺️ Navigate Without Booking
+      </button>
+
+    </div>
+
+    <!-- Map Side -->
+    <div class="desktop-map" style="position:relative">
+      <div id="dashboard-map" style="width:100%;height:100%"></div>
+
+      <!-- FABs for mobile (floating over map) -->
+      <div class="fab-container d-lg-none">
+        <button class="fab-btn fab-offer" onclick="handleOfferRide()">
+          🚲 Offer Ride
+        </button>
+        <button class="fab-btn fab-find" onclick="navigateTo('findRide.html')">
+          🔍 Find Ride
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Bottom Nav (Mobile) -->
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item active" data-nav="home">
+    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+  </a>
+  <a href="navigate.html" class="bottom-nav-item" data-nav="navigate">
+    <span class="nav-icon">🗺️</span><span class="nav-label">Navigate</span>
+  </a>
+  <a href="profile.html" class="bottom-nav-item" data-nav="profile">
+    <span class="nav-icon">👤</span><span class="nav-label">Profile</span>
+  </a>
+</nav>
+
+<!-- Driver Verification Modal -->
+<div class="modal-overlay" id="verify-modal" onclick="outsideClick(event,'verify-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="verify-icon">🪪</div>
+    <div class="modal-title" style="text-align:center">Verification Required</div>
+    <p style="text-align:center;color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      Driver verification is required before offering rides.
+    </p>
+    <button class="btn-primary-rl" onclick="navigateTo('driverVerification.html')" style="margin-bottom:10px">
+      🔍 Start Verification
+    </button>
+    <button class="btn-outline-rl" onclick="hideModal('verify-modal')" style="margin-bottom:10px">
+      Maybe Later
+    </button>
+    <button onclick="skipVerification()" style="
+      width:100%;padding:10px;background:transparent;border:none;
+      color:var(--text-muted);font-size:13px;cursor:pointer;
+      font-family:'DM Sans',sans-serif;border-radius:8px;">
+      Skip (Demo Only)
+    </button>
+    <div class="demo-skip-note">For demonstration purposes only</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/app.js"></script>
+<script src="js/map.js"></script>
+<script src="js/rides.js"></script>
+<script>
+  // Coimbatore centre
+  const CBE = [11.0168, 76.9558];
+
+  // Greeting based on time
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning 👋' : hr < 17 ? 'Good afternoon 👋' : 'Good evening 👋';
+  document.getElementById('dash-greeting').textContent = greet;
+
+  // User name
+  const u = loadState('user', AppState.currentUser);
+  document.getElementById('dash-username').textContent = u.name || 'Demo User';
+  const topInitial = document.getElementById('top-nav-initial');
+  if (topInitial) topInitial.textContent = (u.name || 'D')[0].toUpperCase();
+
+  // Init map centred on Coimbatore
+  const map = initMap('dashboard-map', CBE, 13);
+
+  // Always show Coimbatore — no geolocation to avoid wrong city
+  map.setView(CBE, 13);
+  L.marker(CBE, { icon: icons.user })
+    .addTo(map).bindPopup('📍 Coimbatore').openPopup();
+
+  // Show demo ride markers with driver initials
+  demoRides.slice(0, 4).forEach(r => {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        background:linear-gradient(135deg,#00C896,#009E78);
+        width:38px;height:38px;border-radius:50%;
+        border:3px solid #fff;
+        box-shadow:0 2px 8px rgba(0,0,0,0.4);
+        display:flex;align-items:center;justify-content:center;
+        color:#fff;font-weight:800;font-size:15px;
+        font-family:'Syne',sans-serif;
+      ">${r.driverInitial}</div>`,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+      popupAnchor: [0, -22]
+    });
+    L.marker(r.pickupCoords, { icon })
+      .addTo(map)
+      .bindPopup(`<b style="color:#00C896">${r.driver}</b><br>
+        📍 ${r.pickup} → 🏁 ${r.destination}<br>
+        🕐 ${r.time} &nbsp;·&nbsp; ₹${r.price}`);
+  });
+
+  function handleOfferRide() {
+    AppState.driverVerified = loadState('verified', false);
+    checkVerification(() => navigateTo('offerRide.html'));
+  }
+
+  function skipVerification() {
+    saveState('verified', true);
+    hideModal('verify-modal');
+    showToast('Skipped for demo. You can now offer rides.', 'warning');
+    setTimeout(() => navigateTo('offerRide.html'), 800);
+  }
+
+  function outsideClick(e, id) {
+    if (e.target.id === id) hideModal(id);
+  }
+</script>
+</body>
+</html>

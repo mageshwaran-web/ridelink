@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ride In Progress – RideLink</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-wrapper" style="padding-bottom:0">
+<div style="position:relative;height:100vh">
+
+  <div id="progress-map" style="width:100%;height:100%"></div>
+
+  <!-- Top status chip -->
+  <div class="map-overlay">
+    <div class="map-info-chip" style="background:rgba(0,200,150,0.15);border-color:rgba(0,200,150,0.4);color:var(--primary)">
+      🚲 Ride In Progress
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div class="ride-hud">
+    <div class="hud-row">
+      <div class="hud-stat">
+        <div class="hud-value" id="prog-dist">--</div>
+        <div class="hud-label">Remaining</div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-value" id="prog-eta">--</div>
+        <div class="hud-label">ETA</div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-value" id="prog-speed">28</div>
+        <div class="hud-label">km/h</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div class="route-dot destination" style="width:8px;height:8px"></div>
+      <div style="font-size:14px;font-weight:500" id="prog-dest">Destination</div>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn-outline-rl" style="flex:1;padding:12px" onclick="showModal('sos-modal')">
+        🆘 SOS
+      </button>
+      <button class="btn-primary-rl" style="flex:1;padding:12px" onclick="endRide()">
+        🏁 End Ride
+      </button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- SOS Modal -->
+<div class="modal-overlay" id="sos-modal" onclick="if(event.target.id==='sos-modal')hideModal('sos-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;font-size:48px;margin-bottom:12px">🆘</div>
+    <div class="modal-title" style="text-align:center;color:var(--danger)">Emergency Alert</div>
+    <p style="text-align:center;color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      An emergency alert with your current location will be sent to your emergency contact.
+    </p>
+    <button class="btn-danger-rl" style="width:100%;justify-content:center;margin-bottom:10px" onclick="sendSOS()">
+      🆘 Send Alert Now
+    </button>
+    <button class="btn-outline-rl" onclick="hideModal('sos-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Ride Complete Modal -->
+<div class="modal-overlay" id="complete-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:64px">🎉</div>
+      <div class="modal-title" style="text-align:center">Ride Completed!</div>
+      <p style="text-align:center;color:var(--text-muted);font-size:14px;margin-top:8px" id="comp-route">
+        Pickup → Destination
+      </p>
+    </div>
+    <button class="btn-primary-rl" onclick="navigateTo('rideRating.html')" style="margin-bottom:10px">
+      ⭐ Rate Your Ride
+    </button>
+    <button onclick="navigateTo('dashboard.html')" style="
+      width:100%;padding:12px;background:transparent;border:none;
+      color:var(--text-muted);font-family:'DM Sans',sans-serif;
+      font-size:14px;cursor:pointer;
+    ">Skip for now</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script src="js/app.js"></script>
+<script src="js/map.js"></script>
+<script>
+  const ride = JSON.parse(sessionStorage.getItem('rideAccepted') || sessionStorage.getItem('selectedRide') || 'null');
+
+  if (ride) {
+    document.getElementById('prog-dest').textContent = ride.destination;
+    document.getElementById('comp-route').textContent = `${ride.pickup} → ${ride.destination}`;
+  }
+
+  const CBE = [11.0168, 76.9558];
+  const startCoords = ride ? ride.pickupCoords : CBE;
+  const destCoords  = ride ? ride.destCoords   : [CBE[0] + 0.04, CBE[1] + 0.04];
+
+  const progMap = initMap('progress-map', startCoords, 13);
+
+  // Markers
+  L.marker(destCoords, { icon: icons.dest })
+    .addTo(progMap).bindPopup('🏁 ' + (ride ? ride.destination : 'Destination'));
+  const bikeMarker = L.marker(startCoords, { icon: icons.driver })
+    .addTo(progMap).bindPopup('🚲 Your ride');
+
+  let moveTimer = null;
+
+  // Fetch real road route from OSRM
+  const startOSRM = startCoords[1] + ',' + startCoords[0]; // lon,lat
+  const endOSRM   = destCoords[1]  + ',' + destCoords[0];
+
+  fetch(`https://router.project-osrm.org/route/v1/bike/${startOSRM};${endOSRM}?overview=full&geometries=geojson`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.routes || !data.routes[0]) throw new Error('No route');
+
+      const route    = data.routes[0];
+      const coords   = route.geometry.coordinates;
+      const latLngs  = coords.map(c => [c[1], c[0]]); // [lng,lat] → [lat,lng]
+      const distKm   = (route.distance / 1000).toFixed(1);
+      const totalMin = Math.round(route.duration / 60);
+
+      // Green = remaining ahead (shrinks), grey = travelled (grows behind marker)
+      const remainLine    = L.polyline(latLngs, { color: '#00C896', weight: 5, opacity: 0.9 }).addTo(progMap);
+      const travelledLine = L.polyline([latLngs[0]], { color: '#444c56', weight: 3, opacity: 0.4 }).addTo(progMap);
+      progMap.fitBounds(latLngs, { padding: [50, 50] });
+
+      document.getElementById('prog-dist').textContent = distKm + ' km';
+      document.getElementById('prog-eta').textContent  = totalMin + ' min';
+
+      const total    = latLngs.length;
+      const interval = Math.max(30, Math.floor(30000 / total));
+      let i = 0;
+
+      moveTimer = setInterval(() => {
+        if (i >= total) {
+          clearInterval(moveTimer);
+          bikeMarker.setLatLng(destCoords);
+          remainLine.setLatLngs([destCoords]);
+          showModal('complete-modal');
+          return;
+        }
+        bikeMarker.setLatLng(latLngs[i]);
+        progMap.panTo(latLngs[i], { animate: true, duration: 0.2 });
+        remainLine.setLatLngs(latLngs.slice(i));        // green shrinks ahead
+        travelledLine.setLatLngs(latLngs.slice(0, i+1)); // grey grows behind
+
+        const progress = i / total;
+        document.getElementById('prog-dist').textContent = (distKm * (1 - progress)).toFixed(1) + ' km';
+        document.getElementById('prog-eta').textContent  = Math.round(totalMin * (1 - progress)) + ' min';
+        i++;
+      }, interval);
+    })
+    .catch(() => {
+      const remainLine    = L.polyline([startCoords, destCoords], { color: '#00C896', weight: 4, opacity: 0.9 }).addTo(progMap);
+      const travelledLine = L.polyline([startCoords], { color: '#444c56', weight: 3, opacity: 0.4 }).addTo(progMap);
+      progMap.fitBounds([startCoords, destCoords], { padding: [50, 50] });
+
+      const R = 6371;
+      const dLat = (destCoords[0]-startCoords[0])*Math.PI/180;
+      const dLon = (destCoords[1]-startCoords[1])*Math.PI/180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(startCoords[0]*Math.PI/180)*Math.cos(destCoords[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+      const distKm = (R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(1);
+      const totalMin = Math.round(distKm / 0.4);
+      document.getElementById('prog-dist').textContent = distKm + ' km';
+      document.getElementById('prog-eta').textContent  = totalMin + ' min';
+
+      const STEPS = 300;
+      let s = 0;
+      moveTimer = setInterval(() => {
+        if (s >= STEPS) { clearInterval(moveTimer); showModal('complete-modal'); return; }
+        s++;
+        const t = s / STEPS;
+        const cur = [startCoords[0]+(destCoords[0]-startCoords[0])*t, startCoords[1]+(destCoords[1]-startCoords[1])*t];
+        bikeMarker.setLatLng(cur);
+        remainLine.setLatLngs([cur, destCoords]);
+        travelledLine.setLatLngs([startCoords, cur]);
+        document.getElementById('prog-dist').textContent = (distKm*(1-t)).toFixed(1) + ' km';
+        document.getElementById('prog-eta').textContent  = Math.round(totalMin*(1-t)) + ' min';
+      }, 100);
+    });
+
+  // Simulate speed variation
+  setInterval(() => {
+    const s = Math.floor(20 + Math.random() * 20);
+    document.getElementById('prog-speed').textContent = s;
+  }, 3000);
+
+  function endRide() {
+    showModal('complete-modal');
+  }
+  function sendSOS() {
+    hideModal('sos-modal');
+    showToast('🆘 Emergency alert sent to your contact!', 'error');
+  }
+</script>
+</body>
+</html>

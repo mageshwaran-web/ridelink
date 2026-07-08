@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Your Ride – RideLink</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-wrapper">
+<div style="max-width:480px;margin:0 auto;padding:32px 16px;text-align:center">
+
+  <div style="font-size:64px;margin-bottom:16px" class="fade-in">⭐</div>
+  <h2 class="fade-in" style="margin-bottom:8px">Rate Your Ride</h2>
+  <p class="fade-in" style="color:var(--text-muted);margin-bottom:28px">How was your experience?</p>
+
+  <!-- Driver rating -->
+  <div class="rl-card fade-in" style="margin-bottom:16px;text-align:left">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div class="driver-avatar" id="rate-avatar">A</div>
+      <div>
+        <div style="font-weight:700" id="rate-driver">Driver</div>
+        <div style="font-size:12px;color:var(--text-muted)">Rate your driver</div>
+      </div>
+    </div>
+
+    <div class="star-rating" id="driver-stars" style="justify-content:center;margin-bottom:16px">
+      <span class="star" data-val="1" onclick="setRating('driver',1)">★</span>
+      <span class="star" data-val="2" onclick="setRating('driver',2)">★</span>
+      <span class="star" data-val="3" onclick="setRating('driver',3)">★</span>
+      <span class="star" data-val="4" onclick="setRating('driver',4)">★</span>
+      <span class="star" data-val="5" onclick="setRating('driver',5)">★</span>
+    </div>
+
+    <textarea class="rl-input" rows="3" placeholder="Leave a comment (optional)..." id="driver-comment"
+      style="resize:none"></textarea>
+  </div>
+
+  <!-- Ride summary -->
+  <div class="rl-card fade-in" style="margin-bottom:20px;text-align:left">
+    <h6 style="margin-bottom:10px;color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:1px">
+      Ride Summary
+    </h6>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:14px;color:var(--text-muted)" id="summary-route">Pickup → Destination</div>
+      <div style="font-weight:700;color:var(--primary)" id="summary-price">₹--</div>
+    </div>
+  </div>
+
+  <button class="btn-primary-rl fade-in" onclick="submitRating()">
+    Submit Rating
+  </button>
+  <button onclick="navigateTo('dashboard.html')" style="
+    width:100%;padding:12px;background:transparent;border:none;
+    color:var(--text-muted);font-family:'DM Sans',sans-serif;
+    font-size:14px;cursor:pointer;margin-top:8px;
+  ">Skip</button>
+
+</div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  const ride = JSON.parse(sessionStorage.getItem('rideAccepted') || sessionStorage.getItem('selectedRide') || 'null');
+  let driverRating = 0;
+
+  if (ride) {
+    document.getElementById('rate-avatar').textContent  = ride.driverInitial;
+    document.getElementById('rate-driver').textContent  = ride.driver;
+    document.getElementById('summary-route').textContent = `${ride.pickup} → ${ride.destination}`;
+    document.getElementById('summary-price').textContent = `₹${ride.price}`;
+  }
+
+  function setRating(type, val) {
+    driverRating = val;
+    document.querySelectorAll('#driver-stars .star').forEach((s, i) => {
+      s.classList.toggle('active', i < val);
+    });
+  }
+
+  function submitRating() {
+    if (!driverRating) { showToast('Please select a rating', 'error'); return; }
+    showToast(`⭐ Rating submitted! Thank you!`, 'success');
+    setTimeout(() => navigateTo('dashboard.html'), 1000);
+  }
+</script>
+</body>
+</html>

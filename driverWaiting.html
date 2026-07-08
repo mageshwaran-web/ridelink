@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waiting for Passenger – RideLink</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .leaflet-routing-container { display:none !important; }
+
+    .pulse-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(0, 200, 150, 0.15);
+      animation: pulse-out 2s ease-out infinite;
+      pointer-events: none;
+    }
+    .pulse-ring:nth-child(2) { animation-delay: 0.6s; }
+    .pulse-ring:nth-child(3) { animation-delay: 1.2s; }
+    @keyframes pulse-out {
+      0%   { transform: translate(-50%,-50%) scale(1); opacity: 0.7; }
+      100% { transform: translate(-50%,-50%) scale(3.5); opacity: 0; }
+    }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--primary);
+      display: inline-block;
+      animation: blink 1.2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+    }
+
+    .ride-detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--dark-border);
+      font-size: 13px;
+    }
+    .ride-detail-row:last-child { border-bottom: none; }
+    .ride-detail-label { color: var(--text-muted); }
+    .ride-detail-value { font-weight: 600; color: var(--text-main); }
+
+    .passenger-found-banner {
+      background: linear-gradient(135deg, #00C896, #009E78);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      animation: slideUp 0.4s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="nav-brand"><div class="nav-brand-icon">R</div>RideLink</div>
+</nav>
+
+<div class="page-wrapper" style="padding-bottom:0">
+<div style="position:relative; height:calc(100vh - 64px)">
+
+  <!-- Map -->
+  <div id="driver-wait-map" style="width:100%;height:55%"></div>
+
+  <!-- Top status chip -->
+  <div class="map-overlay">
+    <div class="map-info-chip">
+      <span class="status-dot"></span>&nbsp; Looking for passengers nearby
+    </div>
+  </div>
+
+  <!-- Bottom sheet -->
+  <div style="
+    height:45%; overflow-y:auto;
+    background:var(--dark-card);
+    border-top:1px solid var(--dark-border);
+    padding:16px;
+  ">
+
+    <!-- Passenger found banner (hidden until triggered) -->
+    <div class="passenger-found-banner" id="passenger-banner">
+      <span style="font-size:28px">🎉</span>
+      <div>
+        <div style="font-weight:700;color:#fff;font-size:15px">Passenger Found!</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.85)" id="passenger-name-banner">Heading to pickup…</div>
+      </div>
+    </div>
+
+    <!-- Ride summary -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px">Your Posted Ride</div>
+        <div style="font-size:12px;color:var(--text-muted)" id="dw-time-label">Posted just now</div>
+      </div>
+      <span class="badge-primary">🟢 Active</span>
+    </div>
+
+    <!-- Route -->
+    <div class="rl-card" style="padding:12px;margin-bottom:12px">
+      <div class="route-line">
+        <div class="route-point">
+          <div class="route-dot pickup"></div>
+          <span style="font-size:13px;font-weight:600" id="dw-pickup">—</span>
+        </div>
+        <div class="route-connector" style="margin-left:4px"></div>
+        <div class="route-point">
+          <div class="route-dot destination"></div>
+          <span style="font-size:13px;font-weight:600" id="dw-dest">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div class="rl-card" style="padding:10px 14px;margin-bottom:12px">
+      <div class="ride-detail-row">
+        <span class="ride-detail-label">⏰ Departure</span>
+        <span class="ride-detail-value" id="dw-time">—</span>
+      </div>
+      <div class="ride-detail-row">
+        <span class="ride-detail-label">💰 Price</span>
+        <span class="ride-detail-value" id="dw-price">—</span>
+      </div>
+      <div class="ride-detail-row">
+        <span class="ride-detail-label">🚲 Vehicle</span>
+        <span class="ride-detail-value" id="dw-vehicle">—</span>
+      </div>
+      <div class="ride-detail-row">
+        <span class="ride-detail-label">🪪 Plate</span>
+        <span class="ride-detail-value" id="dw-plate">—</span>
+      </div>
+    </div>
+
+    <!-- Waiting counter -->
+    <div style="text-align:center;margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:2px">PASSENGERS NOTIFIED</div>
+      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--primary)" id="notif-count">0</div>
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary-rl" style="flex:1;font-size:13px;padding:11px" id="start-btn"
+        onclick="startRideNow()" disabled>
+        🚲 Start Ride
+      </button>
+      <button class="btn-danger-rl" style="flex:1;font-size:13px;padding:11px"
+        onclick="cancelPostedRide()">
+        Cancel Ride
+      </button>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- Cancel confirm modal -->
+<div class="modal-overlay" id="cancel-modal" onclick="outsideClick(event,'cancel-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;font-size:40px;margin-bottom:12px">😕</div>
+    <div class="modal-title" style="text-align:center">Cancel this ride?</div>
+    <p style="text-align:center;color:var(--text-muted);font-size:14px;margin-bottom:20px">
+      Your posted ride will be removed and passengers will be notified.
+    </p>
+    <button class="btn-danger-rl" style="margin-bottom:10px;justify-content:center"
+      onclick="confirmCancel()">Yes, Cancel Ride</button>
+    <button class="btn-outline-rl" onclick="hideModal('cancel-modal')">Keep Ride</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/app.js"></script>
+<script src="js/map.js"></script>
+<script>
+  // Load posted ride data from sessionStorage
+  const posted = JSON.parse(sessionStorage.getItem('postedRide') || 'null');
+  const CBE    = [11.0168, 76.9558];
+
+  // Fill in ride details
+  const u = loadState('user', AppState.currentUser);
+  document.getElementById('dw-pickup').textContent  = posted ? posted.pickup  : '—';
+  document.getElementById('dw-dest').textContent    = posted ? posted.dest    : '—';
+  document.getElementById('dw-time').textContent    = posted ? posted.time    : '—';
+  document.getElementById('dw-price').textContent   = posted ? '₹' + posted.price : '—';
+  document.getElementById('dw-vehicle').textContent = u.vehicle || 'Your Bike';
+  document.getElementById('dw-plate').textContent   = u.plate   || 'TN 38 XX XXXX';
+
+  // Map — show driver's pickup location
+  const pickupCoords = posted && posted.pickupCoords ? posted.pickupCoords : CBE;
+  const destCoords   = posted && posted.destCoords   ? posted.destCoords   : [CBE[0]+0.04, CBE[1]+0.04];
+  const dwMap = initMap('driver-wait-map', pickupCoords, 14);
+
+  // Driver marker at pickup
+  const driverMarker = L.marker(pickupCoords, { icon: icons.driver })
+    .addTo(dwMap).bindPopup('📍 Your pickup point').openPopup();
+
+  // Destination marker
+  L.marker(destCoords, { icon: icons.dest })
+    .addTo(dwMap).bindPopup('🏁 ' + (posted ? posted.dest : 'Destination'));
+
+  // Route line
+  L.polyline([pickupCoords, destCoords], {
+    color: '#00C896', weight: 4, opacity: 0.6, dashArray: '8,6'
+  }).addTo(dwMap);
+
+  // Only fitBounds if both points are within ~50 km (avoids inter-city zoom-out)
+  const latDiff = Math.abs(pickupCoords[0] - destCoords[0]);
+  const lngDiff = Math.abs(pickupCoords[1] - destCoords[1]);
+  if (latDiff < 0.5 && lngDiff < 0.5) {
+    dwMap.fitBounds([pickupCoords, destCoords], { padding: [40, 40] });
+  } else {
+    dwMap.setView(pickupCoords, 13);
+  }
+
+  // Simulate passengers being notified one by one
+  let count = 0;
+  const countEl = document.getElementById('notif-count');
+  const notifTimer = setInterval(() => {
+    count += Math.floor(Math.random() * 3) + 1;
+    countEl.textContent = count;
+  }, 2000);
+
+  // Simulate a passenger accepting after ~8 seconds
+  let passengerFound = false;
+  setTimeout(() => {
+    clearInterval(notifTimer);
+    countEl.textContent = count;
+
+    passengerFound = true;
+
+    // Show passenger found banner
+    const banner = document.getElementById('passenger-banner');
+    const passengerNames = ['Arun K.', 'Priya M.', 'Karthik S.', 'Divya R.', 'Suresh P.'];
+    const randomPassenger = passengerNames[Math.floor(Math.random() * passengerNames.length)];
+    document.getElementById('passenger-name-banner').textContent = randomPassenger + ' accepted your ride';
+    banner.style.display = 'flex';
+
+    showToast('🎉 ' + randomPassenger + ' accepted your ride!', 'success');
+
+    // Enable start ride button
+    const startBtn = document.getElementById('start-btn');
+    startBtn.disabled = false;
+    startBtn.style.background = 'linear-gradient(135deg,var(--primary),var(--primary-dark))';
+
+    // Update status chip
+    document.querySelector('.map-info-chip').innerHTML =
+      '<span style="color:var(--primary)">✓</span>&nbsp; Passenger found — ready to go!';
+
+  }, 8000);
+
+  function startRideNow() {
+    if (!passengerFound) { showToast('Waiting for a passenger…', 'warning'); return; }
+    showToast('Starting ride! 🚲', 'success');
+    setTimeout(() => navigateTo('driverPickup.html'), 800);
+  }
+
+  function cancelPostedRide() {
+    showModal('cancel-modal');
+  }
+
+  function confirmCancel() {
+    hideModal('cancel-modal');
+    clearInterval(notifTimer);
+    showToast('Ride cancelled', 'warning');
+    setTimeout(() => navigateTo('dashboard.html'), 800);
+  }
+
+  function outsideClick(e, id) {
+    if (e.target.id === id) hideModal(id);
+  }
+</script>
+</body>
+</html>
